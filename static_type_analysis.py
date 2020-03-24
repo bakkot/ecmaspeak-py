@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # ecmaspeak-py/static_type_analysis.py:
 # Perform static type analysis/inference on the spec's pseudocode.
@@ -526,6 +526,7 @@ def create_operation_info_for_section(s):
             # The op is the one indicated by the section heading.
             # print(s.section_num, s.section_kind, 'is', span_end_i)
             hoi = get_info_from_heading(s)
+            hoi.original_desc = []
 
         else:
             # The op is *not* the one indicated by the section heading.
@@ -551,6 +552,7 @@ def create_operation_info_for_section(s):
                 continue # XXX
             else:
                 assert 0, s.section_title
+            hoi.original_desc = []
 
         # -----------------------------------
 
@@ -659,6 +661,8 @@ def declare_sdo(op_name, param_dict, also=[]):
     oi.param_names = list(param_dict.keys())
     oi.param_nature_ = param_dict
     oi.also = also
+
+    oi.original_desc = []
 
     if op_name == 'regexp-Evaluate':
         assert oi.param_names == [] or oi.param_names == ['_direction_']
@@ -1536,6 +1540,7 @@ def extract_info_from_preamble(preamble_nodes):
     para_texts_remaining = []
     for preamble_node in preamble_nodes:
         assert preamble_node.element_name == 'p'
+        info_holder.add('original_desc', preamble_node.inner_source_text())
 
         para_text = preamble_node.inner_source_text().strip()
         trace = ('xInvoke' in para_text)
@@ -1632,6 +1637,7 @@ class PreambleInfoHolder:
         # Have to do this one "out of order"
         # because of possible calls to add_to_description(). 
         poi.description = self.fields['desc']
+        poi.original_desc = self.fields['original_desc']
 
         pl_values = self.fields['pl']
         if len(pl_values) == 0:
@@ -1642,6 +1648,8 @@ class PreambleInfoHolder:
             stderr(f"{poi.name} has multi-pl: {poi.param_names}")
             assert 0
 
+        if poi.original_desc is None:
+            poi.original_desc = []#self.fields['ps']
         for ps in self.fields['ps']:
             get_info_from_parameter_sentence_in_ao_preamble(poi, ps)
 
@@ -2402,6 +2410,7 @@ def resolve_oi(hoi, poi):
 
     assert hoi.description is None
     oi.description = poi.description
+    oi.original_desc = poi.original_desc
 
     return oi
 
@@ -3390,6 +3399,143 @@ class Header:
         def pwi(s=''): # put-with-indentation
             lines.append('' if s == '' else ind + s)
 
+        if self.kind != 'abstract operation':
+            for desc in self.original_desc:
+                pwi(f"<p>{desc}</p>")
+            return lines;
+        else:
+            content = f"The abstract operation {self.name} takes "
+
+            seen_opt = False
+            req_params = []
+            opt_params = []
+
+            for param_name in self.param_names:
+                if param_name in self.optional_params:
+                    seen_opt = True
+                if seen_opt:
+                    assert param_name in self.optional_params
+                params = opt_params if seen_opt else req_params
+                nature = self.param_nature_.get(param_name, 'TBD')
+                if nature != 'TBD':
+                    tipes = convert_nature_to_tipe(nature)
+                    if tipes == 'String | Symbol':
+                        tipes = 'property key'
+                    tipe_list = tipes.split(' | ')
+                    tipe_massaged = []
+                    for tipe in tipe_list:
+                        if tipe == 'Integer_':
+                            tipe = 'integer'
+                        if tipe == 'List of Integer_':
+                            tipe = 'list of integers'
+                        elif tipe == 'function_object_':
+                            tipe = 'function object'
+                        elif tipe == 'NonNegativeInteger_':
+                            tipe = 'non-negative integer'
+                        elif tipe == 'this_mode2_':
+                            tipe = 'either ~lexical-this~ or ~non-lexical-this~'
+                        elif tipe == 'Unicode_code_points_':
+                            tipe = 'sequence of unicode code points'
+                        elif tipe == 'Tangible_':
+                            tipe = 'ECMAScript language value'
+                        elif tipe == 'List of Tangible_':
+                            tipe = 'List of ECMAScript language values'
+                        elif tipe == 'LangTypeName_':
+                            tipe = 'either String or Symbol'
+                        elif tipe == 'List of LangTypeName_':
+                            tipe = 'List of names of ECMAScript Language Types'
+                        elif tipe == 'constructor_object_':
+                            tipe = 'constructor'
+                        elif tipe == 'iteration_result_kind_':
+                            tipe = 'one of ~key~, ~value~, or ~key+value~'
+                        elif tipe == 'List of SlotName_':
+                            tipe = 'List of names of internal slots'
+                        elif tipe == 'Array_object_':
+                            tipe = 'Array object'
+                        elif tipe == 'code_unit_':
+                            tipe = 'code unit'
+                        elif tipe == 'IterationKind_':
+                            tipe = 'either ~enumerate~, ~iterate~, or ~async-iterate~'
+                        elif tipe == 'LhsKind_':
+                            tipe = 'either ~assignment~, ~varBinding~ or ~lexicalBinding~'
+                        elif tipe == 'IteratorKind_':
+                            tipe = 'either ~sync~ or ~async~'
+                        elif tipe == 'FunctionKind2_':
+                            tipe = 'either ~normal~, ~generator~, ~async~, or ~asyncGenerator~'
+                        elif tipe == 'Infinity_':
+                            tipe = '&infin;'
+                        elif tipe == 'character_': # TODO seems bad
+                            tipe = 'character'
+                        elif tipe == 'TypedArray_object_':
+                            tipe = 'TypedArray object'
+                        elif tipe == 'ArrayBuffer_object_':
+                            tipe = 'ArrayBuffer object'
+                        elif tipe == 'SharedArrayBuffer_object_':
+                            tipe = 'SharedArrayBuffer object'
+                        elif tipe == 'TypedArray_element_type_':
+                            tipe = 'a TypedArray element type'
+                        elif tipe == 'SharedMemory_ordering_':
+                            tipe = 'either ~SeqCst~ or ~Unordered~'
+                        elif tipe == 'bytes_combining_op_':
+                            tipe = 'pure combining operation that takes two List of byte values arguments and returns a List of byte values' # TODO semantic function PR
+                        elif tipe == 'agent_signifier_':
+                            tipe = 'agent signifier'
+
+                        if tipe.endswith('_'):
+                            assert False, tipe
+
+                        if tipe.startswith('either') or tipe.startswith('one of'):
+                            pass
+                        elif tipe[0] in 'eaiouAEIOU':
+                            tipe = "an " + tipe
+                        else:
+                            tipe = "a " + tipe
+                        tipe_massaged.append(tipe)
+                    tipe = ' or '.join(tipe_massaged) # TODO proper commas
+                    params.append(param_name + " (" + tipe + ")")
+                else:
+                    params.append(param_name)
+
+            # first_optional = next((i for (i, p) in enumerate(params) if p[0] in self.optional_params), len(params))
+            # req_params = params[:first_optional]
+            # opt_params = params[first_optional:]
+
+            def list_of_args(xs):
+                if len(xs) == 0:
+                    assert False
+                elif len(xs) == 1:
+                    return f"argument {xs[0]}"
+                elif len(xs) == 2:
+                    return f"arguments {xs[0]} and {xs[1]}"
+                else:
+                    return f"arguments {', '.join(xs[:-1])}, and {xs[-1]}"
+            if len(req_params) == 0 and len(opt_params) == 0:
+                content += 'no arguments';
+            elif len(opt_params) == 0:
+                content += list_of_args(req_params)
+            elif len(req_params) == 0:
+                content += 'option ' + list_of_args(opt_params)
+            else:
+                content += list_of_args(req_params) + ' and optional ' + list_of_args(opt_params)
+            content += ' and returns a completion record.'
+
+            if self.description:
+                desc = ' '.join(self.description)
+                needs_it = re.match(r'^(!OP|!FUNC|!CM|It|This operation|The job) ', desc)
+                desc = re.sub(r'^(!OP|!FUNC|!CM) ', '', desc)
+                desc = re.sub(r'^(It|This operation|The job) ', '', desc)
+                desc = (desc
+                    .replace('!OP', 'This operation')
+                    .replace('!FUNC', 'This function')
+                )
+                if needs_it:
+                    content += f" It {desc}"
+                else:
+                    content += f" {desc}"
+
+            pwi(f"<p>{content} It performs the following steps:</p>")
+            return lines;
+
         # ---------------------------------------
 
         pwi(f"<dl class='header'>")
@@ -4366,14 +4512,14 @@ def maybe_NamedType(name):
 type_tweaks_filename = '_type_tweaks.txt'
 # type_tweaks_filename = '_operation_headers/cheater_type_tweaks'
 type_tweaks = []
-for line in open(type_tweaks_filename, 'r'):
-    [op_name, p_name, old_t_str, new_t_str] = re.split(' *; *', line.rstrip())
-    type_tweaks.append( (
-        op_name,
-        p_name,
-        parse_type_string(old_t_str),
-        parse_type_string(new_t_str),
-    ))
+# for line in open(type_tweaks_filename, 'r'):
+#     [op_name, p_name, old_t_str, new_t_str] = re.split(' *; *', line.rstrip())
+#     type_tweaks.append( (
+#         op_name,
+#         p_name,
+#         parse_type_string(old_t_str),
+#         parse_type_string(new_t_str),
+#     ))
 
 # UpdateEmpty: _completionRecord_, *return
 

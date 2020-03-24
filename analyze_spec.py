@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # ecmaspeak-py/analyze_spec.py:
 # Perform an initial static analysis of the spec.

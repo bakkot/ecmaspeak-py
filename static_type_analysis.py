@@ -2758,6 +2758,90 @@ nature_to_tipe = {
 
 }
 
+
+def tipe_to_human(tipes):
+    if tipes == 'String | Symbol':
+        tipes = 'property key'
+    tipe_list = tipes.split(' | ')
+    tipe_massaged = []
+    for tipe in tipe_list:
+        if tipe == 'Integer_':
+            tipe = 'integer'
+        if tipe == 'Undefined':
+            tipe = '*undefined*'
+        if tipe == 'Null':
+            tipe = '*null*'
+        if tipe == 'List of Integer_':
+            tipe = 'list of integers'
+        elif tipe == 'function_object_':
+            tipe = 'function object'
+        elif tipe == 'NonNegativeInteger_':
+            tipe = 'non-negative integer'
+        elif tipe == 'this_mode2_':
+            tipe = 'either ~lexical-this~ or ~non-lexical-this~'
+        elif tipe == 'Unicode_code_points_':
+            tipe = 'sequence of unicode code points'
+        elif tipe == 'Tangible_':
+            tipe = 'ECMAScript language value'
+        elif tipe == 'List of Tangible_':
+            tipe = 'List of ECMAScript language values'
+        elif tipe == 'LangTypeName_':
+            tipe = 'either String or Symbol'
+        elif tipe == 'List of LangTypeName_':
+            tipe = 'List of names of ECMAScript Language Types'
+        elif tipe == 'constructor_object_':
+            tipe = 'constructor'
+        elif tipe == 'iteration_result_kind_':
+            tipe = 'one of ~key~, ~value~, or ~key+value~'
+        elif tipe == 'List of SlotName_':
+            tipe = 'List of names of internal slots'
+        elif tipe == 'Array_object_':
+            tipe = 'Array object'
+        elif tipe == 'code_unit_':
+            tipe = 'code unit'
+        elif tipe == 'IterationKind_':
+            tipe = 'either ~enumerate~, ~iterate~, or ~async-iterate~'
+        elif tipe == 'LhsKind_':
+            tipe = 'either ~assignment~, ~varBinding~ or ~lexicalBinding~'
+        elif tipe == 'IteratorKind_':
+            tipe = 'either ~sync~ or ~async~'
+        elif tipe == 'FunctionKind2_':
+            tipe = 'either ~normal~, ~generator~, ~async~, or ~asyncGenerator~'
+        elif tipe == 'Infinity_':
+            tipe = '&infin;'
+        elif tipe == 'character_': # TODO seems bad
+            tipe = 'character'
+        elif tipe == 'TypedArray_object_':
+            tipe = 'TypedArray object'
+        elif tipe == 'ArrayBuffer_object_':
+            tipe = 'ArrayBuffer object'
+        elif tipe == 'SharedArrayBuffer_object_':
+            tipe = 'SharedArrayBuffer object'
+        elif tipe == 'TypedArray_element_type_':
+            tipe = 'a TypedArray element type'
+        elif tipe == 'SharedMemory_ordering_':
+            tipe = 'either ~SeqCst~ or ~Unordered~'
+        elif tipe == 'bytes_combining_op_':
+            tipe = 'pure combining operation that takes two List of byte values arguments and returns a List of byte values' # TODO semantic function PR
+        elif tipe == 'agent_signifier_':
+            tipe = 'agent signifier'
+        elif tipe == 'IteratorResult_object_':
+            tipe = 'IteratorResult object'
+        elif tipe == 'Promise_object_':
+            tipe = 'Promise object'
+
+        if tipe.endswith('_'):
+            assert False, tipe
+
+        if tipe.startswith('either') or tipe.startswith('one of') or tipe.startswith('*'):
+            pass
+        elif tipe[0] in 'eaiouAEIOU':
+            tipe = "an " + tipe
+        else:
+            tipe = "a " + tipe
+        tipe_massaged.append(tipe)
+    return ' or '.join(tipe_massaged) # TODO proper commas
+
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 def sub_many(subject, pattern_repls):
@@ -3399,6 +3483,7 @@ class Header:
         def pwi(s=''): # put-with-indentation
             lines.append('' if s == '' else ind + s)
 
+
         if self.kind != 'abstract operation':
             for desc in self.original_desc:
                 pwi(f"<p>{desc}</p>")
@@ -3418,81 +3503,7 @@ class Header:
                 params = opt_params if seen_opt else req_params
                 nature = self.param_nature_.get(param_name, 'TBD')
                 if nature != 'TBD':
-                    tipes = convert_nature_to_tipe(nature)
-                    if tipes == 'String | Symbol':
-                        tipes = 'property key'
-                    tipe_list = tipes.split(' | ')
-                    tipe_massaged = []
-                    for tipe in tipe_list:
-                        if tipe == 'Integer_':
-                            tipe = 'integer'
-                        if tipe == 'List of Integer_':
-                            tipe = 'list of integers'
-                        elif tipe == 'function_object_':
-                            tipe = 'function object'
-                        elif tipe == 'NonNegativeInteger_':
-                            tipe = 'non-negative integer'
-                        elif tipe == 'this_mode2_':
-                            tipe = 'either ~lexical-this~ or ~non-lexical-this~'
-                        elif tipe == 'Unicode_code_points_':
-                            tipe = 'sequence of unicode code points'
-                        elif tipe == 'Tangible_':
-                            tipe = 'ECMAScript language value'
-                        elif tipe == 'List of Tangible_':
-                            tipe = 'List of ECMAScript language values'
-                        elif tipe == 'LangTypeName_':
-                            tipe = 'either String or Symbol'
-                        elif tipe == 'List of LangTypeName_':
-                            tipe = 'List of names of ECMAScript Language Types'
-                        elif tipe == 'constructor_object_':
-                            tipe = 'constructor'
-                        elif tipe == 'iteration_result_kind_':
-                            tipe = 'one of ~key~, ~value~, or ~key+value~'
-                        elif tipe == 'List of SlotName_':
-                            tipe = 'List of names of internal slots'
-                        elif tipe == 'Array_object_':
-                            tipe = 'Array object'
-                        elif tipe == 'code_unit_':
-                            tipe = 'code unit'
-                        elif tipe == 'IterationKind_':
-                            tipe = 'either ~enumerate~, ~iterate~, or ~async-iterate~'
-                        elif tipe == 'LhsKind_':
-                            tipe = 'either ~assignment~, ~varBinding~ or ~lexicalBinding~'
-                        elif tipe == 'IteratorKind_':
-                            tipe = 'either ~sync~ or ~async~'
-                        elif tipe == 'FunctionKind2_':
-                            tipe = 'either ~normal~, ~generator~, ~async~, or ~asyncGenerator~'
-                        elif tipe == 'Infinity_':
-                            tipe = '&infin;'
-                        elif tipe == 'character_': # TODO seems bad
-                            tipe = 'character'
-                        elif tipe == 'TypedArray_object_':
-                            tipe = 'TypedArray object'
-                        elif tipe == 'ArrayBuffer_object_':
-                            tipe = 'ArrayBuffer object'
-                        elif tipe == 'SharedArrayBuffer_object_':
-                            tipe = 'SharedArrayBuffer object'
-                        elif tipe == 'TypedArray_element_type_':
-                            tipe = 'a TypedArray element type'
-                        elif tipe == 'SharedMemory_ordering_':
-                            tipe = 'either ~SeqCst~ or ~Unordered~'
-                        elif tipe == 'bytes_combining_op_':
-                            tipe = 'pure combining operation that takes two List of byte values arguments and returns a List of byte values' # TODO semantic function PR
-                        elif tipe == 'agent_signifier_':
-                            tipe = 'agent signifier'
-
-                        if tipe.endswith('_'):
-                            assert False, tipe
-
-                        if tipe.startswith('either') or tipe.startswith('one of'):
-                            pass
-                        elif tipe[0] in 'eaiouAEIOU':
-                            tipe = "an " + tipe
-                        else:
-                            tipe = "a " + tipe
-                        tipe_massaged.append(tipe)
-                    tipe = ' or '.join(tipe_massaged) # TODO proper commas
-                    params.append(param_name + " (" + tipe + ")")
+                    params.append(param_name + " (" + tipe_to_human(convert_nature_to_tipe(nature)) + ")")
                 else:
                     params.append(param_name)
 
@@ -3517,7 +3528,10 @@ class Header:
                 content += 'option ' + list_of_args(opt_params)
             else:
                 content += list_of_args(req_params) + ' and optional ' + list_of_args(opt_params)
-            content += ' and returns a completion record.'
+            if self.return_tipe_normal == 'TBD':
+                content += f"."
+            else:
+                content += f" and returns a completion record which, if its [[Type]] is ~normal~, has a [[Value]] which is {tipe_to_human(self.return_tipe_normal)}."
 
             if self.description:
                 desc = ' '.join(self.description)
